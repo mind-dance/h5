@@ -1,0 +1,12 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# IDE's file
+.idea/**/*
+*.woff2
+*.otf
+*.ttf
+!MiSans-Normal.woff2
+!SmileySans-Oblique.otf.woff2
