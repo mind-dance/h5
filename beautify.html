@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>摄像头拍照与图像识别示例</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      #camera {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      #video,
+      #previewImage {
+        max-width: 100%;
+        height: auto;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        border-radius: 5px;
+      }
+
+/* 在包含预览图片的父元素上应用 flex 布局 */
+#previewContainer {
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+  height: 300px; /* 设置一个固定的高度，以便居中效果更明显 */
+}
+
+
+      #captureButton,
+      #fileInput {
+        margin: 20px;
+        padding: 10px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+      }
+
+      #captureButton:hover,
+      #fileInput:hover {
+        background-color: #3e8e41;
+        transform: scale(1.05);
+      }
+
+      #downloadLink {
+        display: block;
+        margin: 20px auto;
+        padding: 10px;
+        background-color: #2196f3;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease-in-out;
+      }
+
+      #downloadLink:hover {
+        background-color: #0c7bbf;
+        transform: scale(1.1);
+      }
+
+      #result,
+      #history {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #f2f2f2;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      #history {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .entry {
+        width: 400px;
+        margin: 20px;
+        text-align: center;
+      }
+
+      .entry img {
+        max-width: 100%;
+        height: auto;
+        margin-bottom: 10px;
+      }
+
+      .entry p {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>摄像头拍照与图像识别示例</h1>
+
+    <div id="camera" style="display: flex; flex-direction: column; align-items: center;">
+      <div style="margin-bottom: 20px;">
+        <video id="video" autoplay></video>
+        <div>
+          <button id="captureButton">拍照</button>
+          <input type="file" id="fileInput" accept="image/*" />
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center;">
+        <div style="text-align: center;">
+          <h2>摄像头预览</h2>
+          <img id="previewImage" style="max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); border-radius: 5px;">
+        </div>
+        <div style="text-align: center;">
+          <h2>选择的图片预览</h2>
+          <img id="selectedImage" style="max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); border-radius: 5px;">
+        </div>
+      </div>
+    </div>
+    <a id="downloadLink" download="captured_image.png">下载照片</a>
+
+    <div id="result"></div>
+
+    <div id="history"></div>
+
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+       document.addEventListener("DOMContentLoaded", function () {
+                  const video = document.getElementById('video');
+                  const captureButton = document.getElementById('captureButton');
+                  const fileInput = document.getElementById('fileInput'); // 新增文件上传输入
+                  const canvas = document.getElementById('canvas');
+                  const downloadLink = document.getElementById('downloadLink');
+                  const resultDiv = document.getElementById('result');
+                  const historyDiv = document.getElementById('history');
+                  const previewImage = document.getElementById('previewImage'); // 新增用于预览图片的元素
+      
+                  navigator.mediaDevices.getUserMedia({ video: true })
+                      .then((stream) => {
+                          video.srcObject = stream;
+                      })
+                      .catch((error) => {
+                          console.error('无法获取摄像头画面:', error);
+                      });
+      
+                  captureButton.addEventListener('click', function () {
+                      takePicture();
+                  });
+      
+                  fileInput.addEventListener('change', function (event) {
+                      const file = event.target.files[0];
+                      if (file) {
+                          processImage(file);
+                      }
+                  });
+      
+                  function takePicture() {
+                      canvas.style.display = 'block';
+                      const context = canvas.getContext('2d');
+                      const width = video.videoWidth;
+                      const height = video.videoHeight;
+      
+                      canvas.width = width;
+                      canvas.height = height;
+                            
+					  context.translate(canvas.width / 2, canvas.height / 2);
+					  context.drawImage(video, -width / 2, -height / 2, width, height);
+					
+                      const imageDataUrl = canvas.toDataURL('image/png');
+                      localStorage.setItem('capturedImage', imageDataUrl);
+      
+                      downloadLink.href = imageDataUrl;
+                      downloadLink.download = 'captured_image.png';
+                      downloadLink.style.display = 'block';
+      
+                      const result = recognizeImage(imageDataUrl);
+                      resultDiv.innerHTML = `识别结果：${result}`;
+      
+                      const history = JSON.parse(localStorage.getItem('history')) || [];
+                      history.push({ image: imageDataUrl, result });
+                      localStorage.setItem('history', JSON.stringify(history));
+      
+                      updateHistoryDisplay(history);
+                  }
+      
+                  function processImage(file) {
+                      const reader = new FileReader();
+                      reader.onload = function (event) {
+                          const imageDataUrl = event.target.result;
+      
+                          // 显示预览图片
+                          previewImage.src = imageDataUrl;
+                          previewImage.style.display = 'block';
+      
+                          const result = recognizeImage(imageDataUrl);
+                          resultDiv.innerHTML = `识别结果：${result}`;
+                      };
+                      reader.readAsDataURL(file);
+                  }
+      
+                  function recognizeImage(imageDataUrl) {
+                      // 简单的示例：判断图像中是否有动物
+                      const image = new Image();
+                      image.src = imageDataUrl;
+      
+                      // 假设我们使用一个简单的规则判断是否有动物（这里仅作为示例）
+                      const hasAnimal = Math.random() > 0.5;
+      
+                      return hasAnimal ? '图像中有动物' : '图像中是人类';
+                  }
+      
+                  function updateHistoryDisplay(history) {
+                      historyDiv.innerHTML = '<h2>历史记录</h2>';
+      
+                      for (const entry of history) {
+                          const entryDiv = document.createElement('div');
+                          entryDiv.innerHTML = `
+                              <img src="${entry.image}" alt="History Image" style="max-width: 100%;">
+                              <p>识别结果：${entry.result}</p>
+                          `;
+                          historyDiv.appendChild(entryDiv);
+                      }
+                  }
+              });
+    </script>
+  </body>
+</html>
