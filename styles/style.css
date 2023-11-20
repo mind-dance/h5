@@ -27,7 +27,18 @@ h1 {
     font-family: 'smileysans', sans-serif;
 }
 
-#video, #canvas, #previewImage {
+#video {
+    width: 50%;
+    height: auto;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    z-index: 1; /* 将视频的层级设为1，使其在svg之上 */
+  }
+
+
+#canvas, #previewImage {
     border: 2px solid #333;
     margin-top: 20px;
     border-radius: 8px;
@@ -62,4 +73,8 @@ button:hover, input:hover, a:hover {
     border: 2px solid #333;
     border-radius: 8px;
     max-width: 100%;
+}
+
+svg {
+    z-index: 0;
 }
