@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>摄像头拍照</title>
+  <style>
+    /* 样式定义 */
+    /* 样式定义 */
+    body {
+      font-family: Arial, sans-serif;
+    }
+    
+    h1, h2 {
+      text-align: center;
+    }
+    
+    .camera-container {
+      width: 50%;
+      margin: 0 auto;
+      text-align: center;
+    }
+    
+    #video {
+      width: 100%;
+      height: auto;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    
+    #photo-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    #photo {
+      max-width: 100%;
+      max-height: 300px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    
+    #photo-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+    
+    .history-photo {
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      object-fit: cover;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+    }
+
+	.history-photo-container {
+	  width: 150px;
+	  height: 150px;
+	  margin: 10px;
+	  border: 2px solid #ccc;
+	  border-radius: 5px;
+	  overflow: hidden; /* 设置溢出隐藏 */
+	}
+	
+	.history-photo-container img {
+	  display: block;
+	  max-width: 100%;
+	  max-height: 100%;
+	}
+  </style>
+</head>
+<body>
+  <h1>摄像头拍照</h1>
+
+  <div>
+    <h2>摄像头预览</h2>
+    <video id="video" width="320" height="240"></video>
+    <button id="capture-button">拍照</button>
+    <button id="reset-button">重置摄像头</button>
+  </div>
+  <input type="file" id="image-upload" accept="image/*">
+<button onclick="uploadImage()">上传图片</button>
+
+  <div id="photo-list-container">
+  <h2>历史照片</h2>
+  <div id="photo-list"></div>	
+
+  <div id="photo-container">
+    <h2>预览图片</h2>
+    <img id="photo" alt="预览图片" style="display: none;">
+    <button id="retake-button" style="display: none;">重新拍照</button>
+  </div>
+  
+  
+</div>
+
+
+  <script>
+    // JavaScript代码
+    // 获取页面元素
+    const video = document.getElementById('video');
+    const captureButton = document.getElementById('capture-button');
+    const resetButton = document.getElementById('reset-button');
+    const photoContainer = document.getElementById('photo-container');
+    const photo = document.getElementById('photo');
+    const retakeButton = document.getElementById('retake-button');
+  
+    let stream = null; // 存储摄像头视频流
+    let photoIndex = 1; // 初始照片序号为1
+    const photoList = []; // 存储历史照片的数组
+  
+    // 摄像头初始化
+    function initializeCamera() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(mediaStream) {
+          stream = mediaStream;
+          video.srcObject = stream;
+          video.play();
+        })
+        .catch(function(err) {
+          console.error('无法访问摄像头：', err);
+        });
+    }
+  
+    // 在页面加载时初始化摄像头
+    window.addEventListener('load', initializeCamera);
+  
+    // 拍照按钮点击事件
+    captureButton.addEventListener('click', function() {
+      // 创建一个canvas元素
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+  
+      // 设置canvas尺寸与视频尺寸相同
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+  
+      // 在canvas上绘制当前视频帧
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+      // 将canvas转换为图片URL，并显示在预览图片中
+      photo.src = canvas.toDataURL('image/png');
+      photo.style.display = 'block';
+  
+      // 隐藏摄像头预览视频并暂停视频流
+      video.style.display = 'none';
+      video.pause();
+      video.srcObject = null;
+  
+      // 显示重新拍照按钮
+      retakeButton.style.display = 'inline-block';
+  
+      // 保存当前照片
+      const newPhoto = {
+        index: photoIndex,
+        src: photo.src
+      };
+      photoList.push(newPhoto);
+      photoIndex++;
+  
+      // 显示历史照片列表
+      renderPhotoList();
+  
+      // 调用识别函数
+      const result = recognizeImage(photo.src);
+      console.log(result);
+    });
+  
+    // 重置摄像头按钮点击事件
+    resetButton.addEventListener('click', function() {
+      // 停止视频流
+      if (stream) {
+        stream.getTracks().forEach(function(track) {
+          track.stop();
+        });
+        stream = null;
+      }
+  
+      // 重新初始化摄像头
+      initializeCamera();
+  
+      // 隐藏预览图片和重新拍照按钮，显示摄像头视频
+      photo.style.display = 'none';
+      retakeButton.style.display = 'none';
+      video.style.display = 'block';
+    });
+  
+    // 重新拍照按钮点击事件
+    retakeButton.addEventListener('click', function() {
+      // 显示摄像头预览视频
+      video.style.display = 'block';
+  
+      // 隐藏预览图片和重新拍照按钮
+      photo.style.display = 'none';
+      retakeButton.style.display = 'none';
+  
+      // 重新启动视频流
+      video.srcObject = stream;
+      video.play();
+    });
+  
+    // 渲染历史照片列表
+    function renderPhotoList() {
+  // 清空历史照片列表
+  while (photoContainer.firstChild) {
+    photoContainer.removeChild(photoContainer.firstChild);
+  }
+
+  // 遍历历史照片数组，并将每张照片添加到列表中
+  photoList.forEach(function(item) {
+    const img = document.createElement('img');
+    img.src = item.src;
+    img.alt = `历史照片${item.index}`;
+    img.className = 'history-photo';
+    photoContainer.appendChild(img);
+
+    // 创建用于显示识别结果的元素
+    const resultText = document.createElement('p');
+    resultText.textContent = recognizeImage(item.src);
+    photoContainer.appendChild(resultText);
+  });
+}
+  
+    // 图像识别函数
+    function recognizeImage(imageDataUrl) {
+      // 简单的示例：判断图像中是否有动物
+      const image = new Image();
+      image.src = imageDataUrl;
+  
+      // 假设我们使用一个简单的规则判断是否有动物（这里仅作为示例）
+      const hasAnimal = Math.random() > 0.5;
+  
+      return hasAnimal ? '图像中有动物' : '图像中是人类';
+    }
+	
+	function uploadImage() {
+	  const inputElement = document.getElementById('image-upload');
+	  const file = inputElement.files[0];
+	  if (!file) {
+	    alert('请先选择要上传的图片！');
+	    return;
+	  }
+	
+	  const reader = new FileReader();
+	  reader.onload = function(e) {
+	    const imageElement = document.createElement('img');
+	    imageElement.src = e.target.result;
+	    const containerElement = document.createElement('div'); // 创建容器元素
+	    containerElement.className = 'history-photo-container';
+	    containerElement.appendChild(imageElement);
+	    document.getElementById('photo-list').appendChild(containerElement);
+	
+	    // 调用图像识别函数
+	    recognizeImage1(imageElement.src, function(result) {
+	      const resultText = document.createElement('p');
+	      resultText.textContent = result;
+	      containerElement.appendChild(resultText);
+	    });
+	  };
+	  reader.readAsDataURL(file);
+	}
+	
+	// 修改图像识别函数，将识别结果作为回调函数的参数进行传递
+	function recognizeImage1(imageDataUrl, callback) {
+	  // 简单的示例：判断图像中是否有动物
+	  const image = new Image();
+	  image.src = imageDataUrl;
+	
+	  // 假设我们使用一个简单的规则判断是否有动物（这里仅作为示例）
+	  const hasAnimal = Math.random() > 0.5;
+	
+	  // 将识别结果传递给回调函数
+	  const result = hasAnimal ? '图像中有动物' : '图像中是人类';
+	  callback(result);
+	}
+
+
+	
+	
+  </script>
+
+
+</body>
+</html>
