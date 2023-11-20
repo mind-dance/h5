@@ -15,3 +15,8 @@ git config --global http.https://github.com.proxy socks5://127.0.0.1:7890
 ```
 git config --global --unset https.proxy
 ```
+连接本仓库使用命令如下
+```
+git add origin https://github.com/mind-dance/h5.git
+git pull origin main
+```
